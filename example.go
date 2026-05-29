@@ -2,8 +2,8 @@ package main
 
 import (
 	"math"
-	"./raytracer"
-	"pb/v3"
+	"gotracer/raytracer"
+	pb "github.com/cheggaaa/pb/v3"
 )
 
 
