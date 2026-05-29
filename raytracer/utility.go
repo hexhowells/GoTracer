@@ -2,15 +2,9 @@ package raytracer
 
 import (
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"fmt"
-	"time"
 )
-
-
-func SeedRandom() {
-	rand.Seed(time.Now().UTC().UnixNano())
-}
 
 
 func RandomFloat64() float64 {
