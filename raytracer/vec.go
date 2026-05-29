@@ -52,17 +52,17 @@ func (v Vector) Divide(v2 Vector) Vector {
 
 
 func (v Vector) DivideN(n float64) Vector {
-	return v.Divide(Vector{X:n, Y:n, Z:n})
+	return Vector{X: v.X / n, Y: v.Y / n, Z: v.Z / n}
 }
 
 
 func (v Vector) MultiplyN(n float64) Vector {
-	return v.Multiply(Vector{X:n, Y:n, Z:n})
+	return Vector{X: v.X * n, Y: v.Y * n, Z: v.Z * n}
 }
 
 
 func (v Vector) MinusN(n float64) Vector {
-	return v.Minus(Vector{X:n, Y:n, Z:n})
+	return Vector{X: v.X - n, Y: v.Y - n, Z: v.Z - n}
 }
 
 
