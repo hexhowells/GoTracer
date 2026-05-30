@@ -2,6 +2,8 @@ package main
 
 import (
 	"math"
+	"runtime"
+	"sync"
 	"gotracer/raytracer"
 	pb "github.com/cheggaaa/pb/v3"
 )
@@ -65,6 +67,23 @@ func createScene() raytracer.Scene {
 }
 
 
+func renderRow(j int, imageWidth int, imageHeight int, samplesPerPixel int, maxDepth int, invWidth float64, invHeight float64, cam raytracer.Camera, scene raytracer.Scene, img *raytracer.Image) {
+		y := -j + imageHeight
+
+		for i := 0; i < imageWidth; i++ {
+			pixel := raytracer.Colour{0.0, 0.0, 0.0}
+
+			for s := 0; s < samplesPerPixel; s++ {
+				u := (float64(i) + raytracer.RandomFloat64()) * invWidth
+				v := (float64(j) + raytracer.RandomFloat64()) * invHeight
+				r := cam.GetRay(u, v)
+				pixel = pixel.Add(rayColour(r, scene, maxDepth))
+			}
+			img.WriteColour(i, y, pixel)
+		}
+}
+
+
 func main() {
 	// Image
 	aspectRatio := 3.0 / 2.0
@@ -88,25 +107,32 @@ func main() {
 	cam := raytracer.NewCamera(lookFrom, lookAt, viewUp, vfov, aspectRatio, aperture, distToFocus)
 
 	// Render
+	invWidth := 1.0 / float64(imageWidth-1)
+	invHeight := 1.0 / float64(imageHeight-1)
+
+	numWorkers := runtime.NumCPU()
+	rowChannel := make(chan int, numWorkers*2)
+	var wg sync.WaitGroup
+
 	progressBar := pb.StartNew(imageHeight)
 
-	for j:=imageHeight-1; j >= 0; j-- {
-		progressBar.Increment()
-		for i:=0; i < imageWidth; i++ {
-			pixel := raytracer.Colour{0.0, 0.0, 0.0}
-			for s:=0; s < samplesPerPixel; s++ {
-				u := ( float64(i) + raytracer.RandomFloat64() ) / float64(imageWidth-1)
-				v := ( float64(j) + raytracer.RandomFloat64() ) / float64(imageHeight-1)
-
-				r := cam.GetRay(u, v)
-
-				pixel = pixel.Add(rayColour(r, scene, maxDepth))
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+			for j := range rowChannel {
+				renderRow(j, imageWidth, imageHeight, samplesPerPixel, maxDepth, invWidth, invHeight, cam, scene, &img)
+				progressBar.Increment()
 			}
-			
-			y := -1 * j + imageHeight
-			img.WriteColour(i, y, pixel)
-		}
+		}(w)
 	}
+
+	for j := imageHeight - 1; j >= 0; j-- {
+		rowChannel <- j
+	}
+	close(rowChannel)
+	wg.Wait()
+	
 	progressBar.Finish()
 	img.SaveAsPng("render.png")
 }
